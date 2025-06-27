@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>바이애슬론 타겟 좌표 수집</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    canvas { border: 2px solid #000; cursor: crosshair; }
+    #output { margin-top: 20px; white-space: pre; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h2>🎯 바이애슬론 타겟 좌표 수집기</h2>
+  <canvas id="targetCanvas" width="500" height="500"></canvas>
+  <div id="output"></div>
+
+  <script>
+    const canvas = document.getElementById("targetCanvas");
+    const ctx = canvas.getContext("2d");
+    const output = document.getElementById("output");
+    const coords = [];
+
+    // 배경 그리기 (원형 표적)
+    function drawTarget() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#eee";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#000";
+      for (let r = 200; r >= 20; r -= 40) {
+        ctx.beginPath();
+        ctx.arc(canvas.width/2, canvas.height/2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // 좌표 찍기
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      coords.push({ x: Math.round(x), y: Math.round(y) });
+      drawTarget();
+      coords.forEach((pt, i) => {
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(i + 1, pt.x + 8, pt.y - 8);
+      });
+
+      output.textContent = JSON.stringify(coords, null, 2);
+    });
+
+    drawTarget();
+  </script>
+</body>
+</html>
