@@ -25,7 +25,7 @@
       padding: 5px;
     }
     button {
-      margin-top: 15px;
+      margin-top: 10px;
       padding: 8px 20px;
     }
     #output {
@@ -36,36 +36,37 @@
   </style>
 </head>
 <body>
-  <h2>🎯 바이애슬론 타겟 좌표 수집기</h2>
+  <h2>🎯 Biathlon Target Logger</h2>
 
   <form id="tagForm">
-    <label>분석 선수</label>
-    <input type="text" id="athlete" placeholder="이름 입력">
+    <label>Athlete</label>
+    <input type="text" id="athlete" placeholder="Name">
 
-    <label>분석 상황</label>
+    <label>Situation</label>
     <select id="situation">
-      <option>훈련</option>
-      <option>경기</option>
+      <option>Training</option>
+      <option>Competition</option>
     </select>
 
-    <label>종목</label>
-    <input type="text" id="event" placeholder="예: 스프린트">
+    <label>Event</label>
+    <input type="text" id="event" placeholder="e.g. Sprint">
 
-    <label>심박수</label>
-    <input type="number" id="heartrate" placeholder="숫자만 입력">
+    <label>Heart Rate</label>
+    <input type="number" id="heartrate" placeholder="Enter BPM">
 
-    <label>사격차시</label>
+    <label>Shooting Round</label>
     <select id="shootingRound">
-      <option value="1">1차시</option>
-      <option value="2">2차시</option>
-      <option value="3">3차시</option>
-      <option value="4">4차시</option>
+      <option value="1">Round 1</option>
+      <option value="2">Round 2</option>
+      <option value="3">Round 3</option>
+      <option value="4">Round 4</option>
     </select>
   </form>
 
   <canvas id="canvas" width="1000" height="300"></canvas>
   <br>
-  <button onclick="downloadCSV()">CSV 저장</button>
+  <button onclick="undoLast()">Undo</button>
+  <button onclick="downloadCSV()">Download CSV</button>
 
   <div id="output"></div>
 
@@ -75,7 +76,6 @@
     const output = document.getElementById("output");
     const coords = [];
 
-    // 과녁 5개 중심 위치
     const targetCenters = [100, 300, 500, 700, 900];
     const targetY = 150;
 
@@ -86,20 +86,27 @@
 
       ctx.strokeStyle = "#000";
       for (let i = 0; i < 5; i++) {
+        const cx = targetCenters[i];
+        const cy = targetY;
+
         for (let r = 60; r >= 10; r -= 10) {
           ctx.beginPath();
-          ctx.arc(targetCenters[i], targetY, r, 0, 2 * Math.PI);
+          ctx.arc(cx, cy, r, 0, 2 * Math.PI);
           ctx.stroke();
         }
-        ctx.fillText(`${i + 1}`, targetCenters[i] - 5, targetY + 80);
+
+        ctx.fillStyle = "#000";
+        ctx.fillText(`${i + 1}`, cx - 5, cy + 80);
       }
 
       coords.forEach((pt, i) => {
+        const cx = targetCenters[pt.targetIndex - 1];
+        const cy = targetY;
         ctx.fillStyle = "red";
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        ctx.arc(cx + pt.x, cy + pt.y, 5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillText(i + 1, pt.x + 6, pt.y - 6);
+        ctx.fillText(i + 1, cx + pt.x + 6, cy + pt.y - 6);
       });
     }
 
@@ -112,14 +119,20 @@
 
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = Math.round(e.clientX - rect.left);
-      const y = Math.round(e.clientY - rect.top);
+      const absX = Math.round(e.clientX - rect.left);
+      const absY = Math.round(e.clientY - rect.top);
 
-      const targetIndex = getTargetIndex(x);
+      const targetIndex = getTargetIndex(absX);
       if (!targetIndex) {
-        alert("과녁 영역 밖입니다.");
+        alert("Click inside a target.");
         return;
       }
+
+      const cx = targetCenters[targetIndex - 1];
+      const cy = targetY;
+
+      const relativeX = absX - cx;
+      const relativeY = absY - cy;
 
       const data = {
         date: new Date().toISOString(),
@@ -128,8 +141,9 @@
         event: document.getElementById("event").value,
         heartrate: document.getElementById("heartrate").value,
         shootingRound: document.getElementById("shootingRound").value,
-        targetIndex: targetIndex,
-        x, y
+        targetIndex,
+        x: relativeX,
+        y: relativeY
       };
 
       coords.push(data);
@@ -137,13 +151,20 @@
       output.textContent = JSON.stringify(coords, null, 2);
     });
 
+    function undoLast() {
+      coords.pop();
+      drawTargets();
+      output.textContent = JSON.stringify(coords, null, 2);
+    }
+
     function downloadCSV() {
-      let csv = "날짜,선수,상황,종목,심박수,사격차시,과녁,x,y\n";
+      let csv = "date,athlete,situation,event,heartrate,shooting_round,target,x,y\n";
       coords.forEach(pt => {
         csv += `${pt.date},${pt.athlete},${pt.situation},${pt.event},${pt.heartrate},${pt.shootingRound},${pt.targetIndex},${pt.x},${pt.y}\n`;
       });
 
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      // UTF-8 BOM 추가로 한글 깨짐 방지도 가능:
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
@@ -157,3 +178,4 @@
   </script>
 </body>
 </html>
+
