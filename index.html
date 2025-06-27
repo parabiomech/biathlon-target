@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Biathlon Target Logger</title>
+  <title>Biathlon Target Tracker</title>
   <style>
     body {
       font-family: sans-serif;
-      max-width: 900px;
+      max-width: 1000px;
       margin: auto;
       padding: 20px;
     }
@@ -16,49 +16,50 @@
       margin-top: 20px;
       cursor: crosshair;
     }
+    .input-group {
+      margin: 10px 0;
+    }
     input, select, button {
       padding: 5px;
-      margin: 5px 0;
-    }
-    .input-group {
-      margin-bottom: 10px;
+      margin-top: 5px;
+      width: 100%;
     }
     #log {
       white-space: pre;
-      margin-top: 20px;
       font-family: monospace;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <h2>🎯 바이애슬론 좌표 수집기</h2>
+  <h2>🎯 바이애슬론 좌표 수집기 (5타겟 시각화)</h2>
 
   <!-- 공통 입력 -->
   <div class="input-group">
-    <label>분석 선수</label><br>
+    <label>분석 선수</label>
     <input type="text" id="athlete">
   </div>
   <div class="input-group">
-    <label>상황</label><br>
+    <label>상황</label>
     <select id="situation">
       <option value="훈련">훈련</option>
       <option value="경기">경기</option>
     </select>
   </div>
   <div class="input-group">
-    <label>종목</label><br>
+    <label>종목</label>
     <input type="text" id="event">
   </div>
 
-  <canvas id="canvas" width="1000" height="320"></canvas>
+  <canvas id="canvas" width="1000" height="300"></canvas>
 
   <!-- 개별 입력 -->
   <div class="input-group">
-    <label>심박수</label><br>
+    <label>심박수</label>
     <input type="number" id="heartrate">
   </div>
   <div class="input-group">
-    <label>사격차시 (바퀴수)</label><br>
+    <label>사격차시 (바퀴수)</label>
     <input type="number" id="round">
   </div>
 
@@ -72,21 +73,40 @@
     const image = new Image();
     const records = [];
 
-    // 이미지 로딩
+    // 과녁 중심 x좌표 계산용
+    const targetCenters = [100, 300, 500, 700, 900];  // 5개 과녁 중심 x (200px 간격)
+    const targetY = 150; // 과녁 중앙 y 위치
+
     image.onload = () => {
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      drawTargets();
     };
-    image.src = "target.png"; // 업로드한 파일명
+    image.src = "target_single.png";  // 업로드한 과녁 단일 이미지 (원형 하나만 잘라 저장)
+
+    function drawTargets() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < 5; i++) {
+        const x = targetCenters[i] - image.width / 2;
+        const y = targetY - image.height / 2;
+        ctx.drawImage(image, x, y);
+      }
+
+      // 클릭 지점 마커 다시 그림
+      records.forEach((r, i) => {
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.fillText(i + 1, r.x + 8, r.y - 8);
+      });
+    }
 
     function getTargetNumber(x) {
-      // 5개의 과녁이 좌우로 고르게 배치되었을 경우 (수정 가능)
-      const spacing = 200; // 각 타겟 중심 간 거리 (픽셀 기준으로 맞춤 필요)
-      const startX = 160;  // 첫 과녁 중심 x좌표 (이미지에 맞게 수정)
-      for (let i = 0; i < 5; i++) {
-        const centerX = startX + i * spacing;
-        if (Math.abs(x - centerX) < 80) return i + 1;
+      for (let i = 0; i < targetCenters.length; i++) {
+        if (Math.abs(x - targetCenters[i]) < image.width / 2) {
+          return i + 1;
+        }
       }
-      return 0; // 클릭 실수 방지
+      return 0;
     }
 
     canvas.addEventListener("click", function (e) {
@@ -96,7 +116,7 @@
 
       const targetNumber = getTargetNumber(x);
       if (targetNumber === 0) {
-        alert("타겟 외 클릭됨");
+        alert("과녁 영역 밖입니다.");
         return;
       }
 
@@ -112,17 +132,8 @@
       };
 
       records.push(data);
+      drawTargets();
       log.textContent = JSON.stringify(records, null, 2);
-
-      // 시각화
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      records.forEach((r, i) => {
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "red";
-        ctx.fill();
-        ctx.fillText(i + 1, r.x + 10, r.y - 10);
-      });
     });
 
     function downloadCSV() {
@@ -135,7 +146,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "biathlon_data.csv";
+      a.download = "biathlon_targets.csv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
