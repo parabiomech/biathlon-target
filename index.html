@@ -2,58 +2,154 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>바이애슬론 타겟 좌표 수집</title>
+  <title>Biathlon Target Logger</title>
   <style>
-    body { font-family: sans-serif; text-align: center; }
-    canvas { border: 2px solid #000; cursor: crosshair; }
-    #output { margin-top: 20px; white-space: pre; font-family: monospace; }
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid black;
+      margin-top: 20px;
+      cursor: crosshair;
+    }
+    label {
+      display: inline-block;
+      margin: 5px 0 2px;
+    }
+    input, select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 8px 20px;
+    }
+    #output {
+      white-space: pre;
+      margin-top: 20px;
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>
   <h2>🎯 바이애슬론 타겟 좌표 수집기</h2>
-  <canvas id="targetCanvas" width="500" height="500"></canvas>
+
+  <form id="tagForm">
+    <label>분석 선수</label>
+    <input type="text" id="athlete" placeholder="이름 입력">
+
+    <label>분석 상황</label>
+    <select id="situation">
+      <option>훈련</option>
+      <option>경기</option>
+    </select>
+
+    <label>종목</label>
+    <input type="text" id="event" placeholder="예: 스프린트">
+
+    <label>심박수</label>
+    <input type="number" id="heartrate" placeholder="숫자만 입력">
+
+    <label>사격차시</label>
+    <select id="shootingRound">
+      <option value="1">1차시</option>
+      <option value="2">2차시</option>
+      <option value="3">3차시</option>
+      <option value="4">4차시</option>
+    </select>
+
+    <label>과녁차시</label>
+    <select id="targetIndex">
+      <option value="1">1번</option>
+      <option value="2">2번</option>
+      <option value="3">3번</option>
+      <option value="4">4번</option>
+      <option value="5">5번</option>
+    </select>
+  </form>
+
+  <canvas id="canvas" width="500" height="500"></canvas>
+  <br>
+  <button onclick="downloadCSV()">CSV 저장</button>
+
   <div id="output"></div>
 
   <script>
-    const canvas = document.getElementById("targetCanvas");
+    const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const output = document.getElementById("output");
     const coords = [];
 
-    // 배경 그리기 (원형 표적)
     function drawTarget() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#eee";
+      ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // 단순 원형 표적 그리기
       ctx.strokeStyle = "#000";
       for (let r = 200; r >= 20; r -= 40) {
         ctx.beginPath();
-        ctx.arc(canvas.width/2, canvas.height/2, r, 0, Math.PI * 2);
+        ctx.arc(250, 250, r, 0, 2 * Math.PI);
         ctx.stroke();
       }
     }
 
-    // 좌표 찍기
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = Math.round(e.clientX - rect.left);
+      const y = Math.round(e.clientY - rect.top);
 
-      coords.push({ x: Math.round(x), y: Math.round(y) });
+      coords.push({ x, y });
       drawTarget();
+
+      // 마커 다시 그림
       coords.forEach((pt, i) => {
         ctx.fillStyle = "red";
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillText(i + 1, pt.x + 8, pt.y - 8);
+        ctx.fillText(i + 1, pt.x + 6, pt.y - 6);
       });
 
       output.textContent = JSON.stringify(coords, null, 2);
     });
 
+    function downloadCSV() {
+      const now = new Date();
+      const dateStr = now.toISOString();
+
+      const data = {
+        date: dateStr,
+        athlete: document.getElementById("athlete").value,
+        situation: document.getElementById("situation").value,
+        event: document.getElementById("event").value,
+        heartrate: document.getElementById("heartrate").value,
+        shootingRound: document.getElementById("shootingRound").value,
+        targetIndex: document.getElementById("targetIndex").value,
+        points: coords
+      };
+
+      let csv = "날짜,선수,상황,종목,심박수,사격차시,과녁차시,x,y\n";
+      data.points.forEach(pt => {
+        csv += `${data.date},${data.athlete},${data.situation},${data.event},${data.heartrate},${data.shootingRound},${data.targetIndex},${pt.x},${pt.y}\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "biathlon_target.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     drawTarget();
   </script>
 </body>
 </html>
+
