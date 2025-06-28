@@ -12,170 +12,181 @@
     }
     canvas {
       border: 2px solid black;
-      margin-top: 20px;
+      margin-top: 10px;
       cursor: crosshair;
     }
-    label {
-      display: inline-block;
-      margin: 5px 0 2px;
+    label, input, select {
+      display: block;
+      margin: 5px 0;
     }
     input, select {
       width: 100%;
-      margin-bottom: 10px;
       padding: 5px;
     }
     button {
-      margin-top: 10px;
+      margin: 10px 5px 0 0;
       padding: 8px 20px;
     }
-    #output {
-      white-space: pre;
-      margin-top: 20px;
-      font-family: monospace;
+    #analysis-area {
+      margin-top: 40px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h2>🎯 Biathlon Target Logger</h2>
+  <h2>🎯 바이애슬론 타겟 좌표 수집기</h2>
 
   <form id="tagForm">
-    <label>Athlete</label>
-    <input type="text" id="athlete" placeholder="Name">
+    <label>분석 선수</label>
+    <input type="text" id="athlete">
 
-    <label>Situation</label>
+    <label>분석 상황</label>
     <select id="situation">
-      <option>Training</option>
-      <option>Competition</option>
+      <option>훈련</option>
+      <option>경기</option>
     </select>
 
-    <label>Event</label>
-    <input type="text" id="event" placeholder="e.g. Sprint">
+    <label>종목</label>
+    <input type="text" id="event">
 
-    <label>Heart Rate</label>
-    <input type="number" id="heartrate" placeholder="Enter BPM">
+    <label>심박수</label>
+    <input type="number" id="heartrate">
 
-    <label>Shooting Round</label>
+    <label>사격 시간 (초)</label>
+    <input type="number" id="shootingTime">
+
+    <label>사격 차시</label>
     <select id="shootingRound">
-      <option value="1">Round 1</option>
-      <option value="2">Round 2</option>
-      <option value="3">Round 3</option>
-      <option value="4">Round 4</option>
+      <option value="1">1차시</option>
+      <option value="2">2차시</option>
+      <option value="3">3차시</option>
+      <option value="4">4차시</option>
     </select>
   </form>
 
-  <canvas id="canvas" width="1000" height="300"></canvas>
-  <br>
-  <button onclick="undoLast()">Undo</button>
-  <button onclick="downloadCSV()">Download CSV</button>
+  <canvas id="canvas" width="600" height="200"></canvas><br>
+  <button onclick="undoPoint()">Undo</button>
+  <button onclick="clearCanvas()">Clear</button>
+  <button onclick="submitData()">분석하기</button>
 
-  <div id="output"></div>
+  <div id="analysis-area">
+    <h3>📊 분석 결과</h3>
+    <canvas id="overviewCanvas" width="600" height="200"></canvas>
+    <canvas id="heatmapCanvas" width="600" height="200"></canvas>
+  </div>
 
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    const output = document.getElementById("output");
+    const overviewCanvas = document.getElementById("overviewCanvas").getContext("2d");
+    const heatmapCanvas = document.getElementById("heatmapCanvas").getContext("2d");
     const coords = [];
 
-    const targetCenters = [100, 300, 500, 700, 900];
-    const targetY = 150;
+    const targetCenters = [60, 180, 300, 420, 540];
 
-    function drawTargets() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#eee";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = "#000";
-      for (let i = 0; i < 5; i++) {
-        const cx = targetCenters[i];
-        const cy = targetY;
-
-        for (let r = 60; r >= 10; r -= 10) {
-          ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-          ctx.stroke();
-        }
-
-        ctx.fillStyle = "#000";
-        ctx.fillText(`${i + 1}`, cx - 5, cy + 80);
+    function drawTargets(context) {
+      context.clearRect(0, 0, 600, 200);
+      for (let x of targetCenters) {
+        context.beginPath();
+        context.arc(x, 100, 40, 0, 2 * Math.PI);
+        context.stroke();
       }
-
-      coords.forEach((pt, i) => {
-        const cx = targetCenters[pt.targetIndex - 1];
-        const cy = targetY;
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(cx + pt.x, cy + pt.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillText(i + 1, cx + pt.x + 6, cy + pt.y - 6);
-      });
     }
 
-    function getTargetIndex(x) {
+    function findTargetIndex(x) {
       for (let i = 0; i < targetCenters.length; i++) {
-        if (Math.abs(x - targetCenters[i]) < 60) return i + 1;
+        if (Math.abs(x - targetCenters[i]) < 40) return i + 1;
       }
       return null;
     }
 
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const absX = Math.round(e.clientX - rect.left);
-      const absY = Math.round(e.clientY - rect.top);
+      const x = Math.round(e.clientX - rect.left);
+      const y = Math.round(e.clientY - rect.top);
 
-      const targetIndex = getTargetIndex(absX);
-      if (!targetIndex) {
-        alert("Click inside a target.");
-        return;
-      }
+      const idx = findTargetIndex(x);
+      if (!idx) return;
 
-      const cx = targetCenters[targetIndex - 1];
-      const cy = targetY;
+      coords.push({
+        x: x - targetCenters[idx - 1],
+        y: y - 100,
+        targetIndex: idx
+      });
 
-      const relativeX = absX - cx;
-      const relativeY = absY - cy;
+      drawTargets(ctx);
+      coords.forEach((pt, i) => {
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(pt.x + targetCenters[pt.targetIndex - 1], pt.y + 100, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(i + 1, pt.x + targetCenters[pt.targetIndex - 1] + 5, pt.y + 100 - 5);
+      });
+    });
 
+    function undoPoint() {
+      coords.pop();
+      drawTargets(ctx);
+      coords.forEach((pt, i) => {
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(pt.x + targetCenters[pt.targetIndex - 1], pt.y + 100, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(i + 1, pt.x + targetCenters[pt.targetIndex - 1] + 5, pt.y + 100 - 5);
+      });
+    }
+
+    function clearCanvas() {
+      drawTargets(ctx);
+      coords.length = 0;
+    }
+
+    function submitData() {
       const data = {
         date: new Date().toISOString(),
         athlete: document.getElementById("athlete").value,
         situation: document.getElementById("situation").value,
         event: document.getElementById("event").value,
         heartrate: document.getElementById("heartrate").value,
+        shootingTime: document.getElementById("shootingTime").value,
         shootingRound: document.getElementById("shootingRound").value,
-        targetIndex,
-        x: relativeX,
-        y: relativeY
+        points: coords
       };
 
-      coords.push(data);
-      drawTargets();
-      output.textContent = JSON.stringify(coords, null, 2);
-    });
-
-    function undoLast() {
-      coords.pop();
-      drawTargets();
-      output.textContent = JSON.stringify(coords, null, 2);
+      fetch("YOUR_GOOGLE_SCRIPT_WEBAPP_URL", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).then(res => {
+        alert("✅ 데이터 전송 완료! 분석 결과를 확인하세요.");
+        document.getElementById("analysis-area").style.display = "block";
+        renderAnalysis();
+      });
     }
 
-    function downloadCSV() {
-      let csv = "date,athlete,situation,event,heartrate,shooting_round,target,x,y\n";
+    function renderAnalysis() {
+      drawTargets(overviewCanvas);
       coords.forEach(pt => {
-        csv += `${pt.date},${pt.athlete},${pt.situation},${pt.event},${pt.heartrate},${pt.shootingRound},${pt.targetIndex},${pt.x},${pt.y}\n`;
+        overviewCanvas.fillStyle = "blue";
+        overviewCanvas.beginPath();
+        overviewCanvas.arc(pt.x + targetCenters[pt.targetIndex - 1], pt.y + 100, 3, 0, Math.PI * 2);
+        overviewCanvas.fill();
       });
 
-      // UTF-8 BOM 추가로 한글 깨짐 방지도 가능:
-      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", "biathlon_target.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // 임시 히트맵: 중심 타겟일수록 더 진하게
+      drawTargets(heatmapCanvas);
+      coords.forEach(pt => {
+        const alpha = 0.1;
+        heatmapCanvas.fillStyle = `rgba(255,0,0,${alpha})`;
+        heatmapCanvas.beginPath();
+        heatmapCanvas.arc(pt.x + targetCenters[pt.targetIndex - 1], pt.y + 100, 20, 0, Math.PI * 2);
+        heatmapCanvas.fill();
+      });
     }
 
-    drawTargets();
+    drawTargets(ctx);
   </script>
 </body>
 </html>
-

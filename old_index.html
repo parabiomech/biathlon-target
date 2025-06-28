@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Biathlon Target Logger</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid black;
+      margin-top: 20px;
+      cursor: crosshair;
+    }
+    label {
+      display: inline-block;
+      margin: 5px 0 2px;
+    }
+    input, select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 20px;
+    }
+    #output {
+      white-space: pre;
+      margin-top: 20px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎯 Biathlon Target Logger</h2>
+
+  <form id="tagForm">
+    <label>Athlete</label>
+    <input type="text" id="athlete" placeholder="Name">
+
+    <label>Situation</label>
+    <select id="situation">
+      <option>Training</option>
+      <option>Competition</option>
+    </select>
+
+    <label>Event</label>
+    <input type="text" id="event" placeholder="e.g. Sprint">
+
+    <label>Heart Rate</label>
+    <input type="number" id="heartrate" placeholder="Enter BPM">
+
+    <label>Shooting Round</label>
+    <select id="shootingRound">
+      <option value="1">Round 1</option>
+      <option value="2">Round 2</option>
+      <option value="3">Round 3</option>
+      <option value="4">Round 4</option>
+    </select>
+  </form>
+
+  <canvas id="canvas" width="1000" height="300"></canvas>
+  <br>
+  <button onclick="undoLast()">Undo</button>
+  <button onclick="downloadCSV()">Download CSV</button>
+
+  <div id="output"></div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const output = document.getElementById("output");
+    const coords = [];
+
+    const targetCenters = [100, 300, 500, 700, 900];
+    const targetY = 150;
+
+    function drawTargets() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#eee";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#000";
+      for (let i = 0; i < 5; i++) {
+        const cx = targetCenters[i];
+        const cy = targetY;
+
+        for (let r = 60; r >= 10; r -= 10) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "#000";
+        ctx.fillText(`${i + 1}`, cx - 5, cy + 80);
+      }
+
+      coords.forEach((pt, i) => {
+        const cx = targetCenters[pt.targetIndex - 1];
+        const cy = targetY;
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(cx + pt.x, cy + pt.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(i + 1, cx + pt.x + 6, cy + pt.y - 6);
+      });
+    }
+
+    function getTargetIndex(x) {
+      for (let i = 0; i < targetCenters.length; i++) {
+        if (Math.abs(x - targetCenters[i]) < 60) return i + 1;
+      }
+      return null;
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const absX = Math.round(e.clientX - rect.left);
+      const absY = Math.round(e.clientY - rect.top);
+
+      const targetIndex = getTargetIndex(absX);
+      if (!targetIndex) {
+        alert("Click inside a target.");
+        return;
+      }
+
+      const cx = targetCenters[targetIndex - 1];
+      const cy = targetY;
+
+      const relativeX = absX - cx;
+      const relativeY = absY - cy;
+
+      const data = {
+        date: new Date().toISOString(),
+        athlete: document.getElementById("athlete").value,
+        situation: document.getElementById("situation").value,
+        event: document.getElementById("event").value,
+        heartrate: document.getElementById("heartrate").value,
+        shootingRound: document.getElementById("shootingRound").value,
+        targetIndex,
+        x: relativeX,
+        y: relativeY
+      };
+
+      coords.push(data);
+      drawTargets();
+      output.textContent = JSON.stringify(coords, null, 2);
+    });
+
+    function undoLast() {
+      coords.pop();
+      drawTargets();
+      output.textContent = JSON.stringify(coords, null, 2);
+    }
+
+    function downloadCSV() {
+      let csv = "date,athlete,situation,event,heartrate,shooting_round,target,x,y\n";
+      coords.forEach(pt => {
+        csv += `${pt.date},${pt.athlete},${pt.situation},${pt.event},${pt.heartrate},${pt.shootingRound},${pt.targetIndex},${pt.x},${pt.y}\n`;
+      });
+
+      // UTF-8 BOM 추가로 한글 깨짐 방지도 가능:
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "biathlon_target.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    drawTargets();
+  </script>
+</body>
+</html>
+
