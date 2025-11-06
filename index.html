@@ -120,8 +120,49 @@
         </select>
       </div>
       <div>
-        <label>종목 (Event)</label>
-        <input type="text" id="event" placeholder="예: Sprint">
+        <label>종목명/훈련명 (Event/Training)</label>
+        <input type="text" id="event" placeholder="종목:FIS캐나다대회_sprint / 훈련:평창코스">
+      </div>
+    </div>
+    
+    <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 6px;">
+      <label style="margin-bottom: 10px; display: block;">심박수 존 (Heart Rate Zones)</label>
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 1 (Zone 1)</label>
+          <div style="display: flex; gap: 3px;">
+            <input type="number" id="zone1_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
+            <input type="number" id="zone1_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 2 (Zone 2)</label>
+          <div style="display: flex; gap: 3px;">
+            <input type="number" id="zone2_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
+            <input type="number" id="zone2_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 3 (Zone 3)</label>
+          <div style="display: flex; gap: 3px;">
+            <input type="number" id="zone3_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
+            <input type="number" id="zone3_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 4 (Zone 4)</label>
+          <div style="display: flex; gap: 3px;">
+            <input type="number" id="zone4_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
+            <input type="number" id="zone4_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 5 (Zone 5)</label>
+          <div style="display: flex; gap: 3px;">
+            <input type="number" id="zone5_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
+            <input type="number" id="zone5_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
+          </div>
+        </div>
       </div>
     </div>
     
@@ -180,6 +221,24 @@
     const TARGET_SPACING = 30;
     const OUTER_RADIUS = 90; // 큰 원 반지름
     const INNER_RADIUS = 30; // 작은 원 반지름 (1/3)
+
+    // 심박수 존 계산 함수
+    function getHeartRateZone(hr) {
+      const zones = [
+        { min: parseInt(document.getElementById("zone1_min").value) || 0, max: parseInt(document.getElementById("zone1_max").value) || 0, zone: 1 },
+        { min: parseInt(document.getElementById("zone2_min").value) || 0, max: parseInt(document.getElementById("zone2_max").value) || 0, zone: 2 },
+        { min: parseInt(document.getElementById("zone3_min").value) || 0, max: parseInt(document.getElementById("zone3_max").value) || 0, zone: 3 },
+        { min: parseInt(document.getElementById("zone4_min").value) || 0, max: parseInt(document.getElementById("zone4_max").value) || 0, zone: 4 },
+        { min: parseInt(document.getElementById("zone5_min").value) || 0, max: parseInt(document.getElementById("zone5_max").value) || 0, zone: 5 }
+      ];
+
+      for (let z of zones) {
+        if (z.min > 0 && z.max > 0 && hr >= z.min && hr <= z.max) {
+          return z.zone;
+        }
+      }
+      return "-"; // 존 범위에 해당 없음
+    }
 
     // 타겟 그리기
     function drawTargets() {
@@ -355,13 +414,17 @@
         return;
       }
 
+      const hrValue = parseInt(heartrate);
+      const hrZone = getHeartRateZone(hrValue);
+
       // 라운드 데이터 저장
       const roundData = {
         round: currentRound,
         athlete: document.getElementById("athlete").value,
         situation: document.getElementById("situation").value,
         event: document.getElementById("event").value,
-        heartrate: parseInt(heartrate),
+        heartrate: hrValue,
+        hrZone: hrZone,
         shots: [...currentRoundShots]
       };
 
@@ -584,6 +647,7 @@
       statsCtx.fillText("첫발 시간", 500, 330);
       statsCtx.fillText("템포(2-5)", 620, 330);
       statsCtx.fillText("심박수", 760, 330);
+      statsCtx.fillText("HR존", 860, 330);
 
       // 각 라운드별
       statsCtx.font = "14px sans-serif";
@@ -614,6 +678,7 @@
         statsCtx.fillText(`${firstShotTime}초`, 500, y);
         statsCtx.fillText(`${avgTempo}초`, 620, y);
         statsCtx.fillText(`${round.heartrate}`, 760, y);
+        statsCtx.fillText(`존${round.hrZone}`, 860, y);
       });
     }
 
@@ -624,10 +689,20 @@
         return;
       }
 
+      // 심박수 존 정보 수집
+      const hrZones = {
+        zone1: { min: parseInt(document.getElementById("zone1_min").value) || null, max: parseInt(document.getElementById("zone1_max").value) || null },
+        zone2: { min: parseInt(document.getElementById("zone2_min").value) || null, max: parseInt(document.getElementById("zone2_max").value) || null },
+        zone3: { min: parseInt(document.getElementById("zone3_min").value) || null, max: parseInt(document.getElementById("zone3_max").value) || null },
+        zone4: { min: parseInt(document.getElementById("zone4_min").value) || null, max: parseInt(document.getElementById("zone4_max").value) || null },
+        zone5: { min: parseInt(document.getElementById("zone5_min").value) || null, max: parseInt(document.getElementById("zone5_max").value) || null }
+      };
+
       const jsonData = {
         athlete: document.getElementById("athlete").value,
         situation: document.getElementById("situation").value,
         event: document.getElementById("event").value,
+        heartRateZones: hrZones,
         savedAt: new Date().toISOString(),
         totalRounds: allData.length,
         rounds: allData
