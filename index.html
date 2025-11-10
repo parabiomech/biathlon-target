@@ -126,42 +126,27 @@
     </div>
     
     <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 6px;">
-      <label style="margin-bottom: 10px; display: block;">심박수 존 (Heart Rate Zones)</label>
+      <label style="margin-bottom: 10px; display: block;">심박수 존 최댓값 (Heart Rate Zone Max Values)</label>
       <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
         <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">존 1 (Zone 1)</label>
-          <div style="display: flex; gap: 3px;">
-            <input type="number" id="zone1_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
-            <input type="number" id="zone1_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
-          </div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 1 (0~존1)</label>
+          <input type="number" id="zone1" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">존 2 (Zone 2)</label>
-          <div style="display: flex; gap: 3px;">
-            <input type="number" id="zone2_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
-            <input type="number" id="zone2_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
-          </div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 2 (존1~존2)</label>
+          <input type="number" id="zone2" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">존 3 (Zone 3)</label>
-          <div style="display: flex; gap: 3px;">
-            <input type="number" id="zone3_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
-            <input type="number" id="zone3_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
-          </div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 3 (존2~존3)</label>
+          <input type="number" id="zone3" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">존 4 (Zone 4)</label>
-          <div style="display: flex; gap: 3px;">
-            <input type="number" id="zone4_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
-            <input type="number" id="zone4_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
-          </div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 4 (존3~존4)</label>
+          <input type="number" id="zone4" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">존 5 (Zone 5)</label>
-          <div style="display: flex; gap: 3px;">
-            <input type="number" id="zone5_min" placeholder="최소" style="width: 100%; padding: 5px; font-size: 12px;">
-            <input type="number" id="zone5_max" placeholder="최대" style="width: 100%; padding: 5px; font-size: 12px;">
-          </div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 5 (존4~존5)</label>
+          <input type="number" id="zone5" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
       </div>
     </div>
@@ -174,6 +159,24 @@
       <div>
         <label>현재 라운드</label>
         <div class="current-round" id="currentRound">Round 1</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px;">
+      <label style="margin-bottom: 10px; display: block; font-weight: bold;">수기 사격시간 입력 (Manual Shooting Time)</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_첫발 (초)</label>
+          <input type="number" id="manual_first" placeholder="첫발 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_템포 (초)</label>
+          <input type="number" id="manual_tempo" placeholder="템포 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_총시간 (초)</label>
+          <input type="number" id="manual_total" placeholder="자동계산" readonly style="width: 100%; padding: 5px; font-size: 12px; background: #e9ecef;">
+        </div>
       </div>
     </div>
   </div>
@@ -224,21 +227,32 @@
 
     // 심박수 존 계산 함수
     function getHeartRateZone(hr) {
-      const zones = [
-        { min: parseInt(document.getElementById("zone1_min").value) || 0, max: parseInt(document.getElementById("zone1_max").value) || 0, zone: 1 },
-        { min: parseInt(document.getElementById("zone2_min").value) || 0, max: parseInt(document.getElementById("zone2_max").value) || 0, zone: 2 },
-        { min: parseInt(document.getElementById("zone3_min").value) || 0, max: parseInt(document.getElementById("zone3_max").value) || 0, zone: 3 },
-        { min: parseInt(document.getElementById("zone4_min").value) || 0, max: parseInt(document.getElementById("zone4_max").value) || 0, zone: 4 },
-        { min: parseInt(document.getElementById("zone5_min").value) || 0, max: parseInt(document.getElementById("zone5_max").value) || 0, zone: 5 }
-      ];
+      const zone1 = parseInt(document.getElementById("zone1").value) || 0;
+      const zone2 = parseInt(document.getElementById("zone2").value) || 0;
+      const zone3 = parseInt(document.getElementById("zone3").value) || 0;
+      const zone4 = parseInt(document.getElementById("zone4").value) || 0;
+      const zone5 = parseInt(document.getElementById("zone5").value) || 0;
 
-      for (let z of zones) {
-        if (z.min > 0 && z.max > 0 && hr >= z.min && hr <= z.max) {
-          return z.zone;
-        }
-      }
+      if (zone1 > 0 && hr <= zone1) return 1;
+      if (zone2 > 0 && hr <= zone2) return 2;
+      if (zone3 > 0 && hr <= zone3) return 3;
+      if (zone4 > 0 && hr <= zone4) return 4;
+      if (zone5 > 0 && hr <= zone5) return 5;
+      
       return "-"; // 존 범위에 해당 없음
     }
+
+    // 수기 총시간 자동계산
+    function updateManualTotal() {
+      const first = parseFloat(document.getElementById("manual_first").value) || 0;
+      const tempo = parseFloat(document.getElementById("manual_tempo").value) || 0;
+      const total = first + tempo;
+      document.getElementById("manual_total").value = total > 0 ? total.toFixed(1) : "";
+    }
+
+    // 수기 시간 입력 필드에 이벤트 리스너 추가
+    document.getElementById("manual_first").addEventListener("input", updateManualTotal);
+    document.getElementById("manual_tempo").addEventListener("input", updateManualTotal);
 
     // 타겟 그리기
     function drawTargets() {
@@ -417,6 +431,11 @@
       const hrValue = parseInt(heartrate);
       const hrZone = getHeartRateZone(hrValue);
 
+      // 수기 시간 데이터 수집
+      const manualFirst = parseFloat(document.getElementById("manual_first").value) || null;
+      const manualTempo = parseFloat(document.getElementById("manual_tempo").value) || null;
+      const manualTotal = (manualFirst && manualTempo) ? manualFirst + manualTempo : null;
+
       // 라운드 데이터 저장
       const roundData = {
         round: currentRound,
@@ -425,6 +444,9 @@
         event: document.getElementById("event").value,
         heartrate: hrValue,
         hrZone: hrZone,
+        manualFirst: manualFirst,
+        manualTempo: manualTempo,
+        manualTotal: manualTotal,
         shots: [...currentRoundShots]
       };
 
@@ -439,6 +461,9 @@
       document.getElementById("startBtn").disabled = false;
       document.getElementById("confirmBtn").disabled = true;
       document.getElementById("heartrate").value = "";
+      document.getElementById("manual_first").value = "";
+      document.getElementById("manual_tempo").value = "";
+      document.getElementById("manual_total").value = "";
 
       drawTargets();
       drawAccumulated();
@@ -569,8 +594,15 @@
         failTimes: []
       }));
 
+      // 1번 타겟용 수기 첫발 시간 통계
+      const target1ManualFirstStats = {
+        allTimes: [],
+        successTimes: [],
+        failTimes: []
+      };
+
       allData.forEach(round => {
-        round.shots.forEach(shot => {
+        round.shots.forEach((shot, shotIdx) => {
           totalShots++;
           const idx = shot.targetIndex - 1;
           targetStats[idx].total++;
@@ -583,6 +615,16 @@
             targetStats[idx].failTimes.push(shot.tempo);
           } else {
             targetStats[idx].successTimes.push(shot.tempo);
+          }
+
+          // 1번 타겟의 첫발(shotIdx==0)에 대한 수기 시간 통계
+          if (shot.targetIndex === 1 && shotIdx === 0 && round.manualFirst !== null) {
+            target1ManualFirstStats.allTimes.push(round.manualFirst);
+            if (shot.success) {
+              target1ManualFirstStats.successTimes.push(round.manualFirst);
+            } else {
+              target1ManualFirstStats.failTimes.push(round.manualFirst);
+            }
           }
         });
       });
@@ -606,9 +648,9 @@
       statsCtx.fillText("샷 수", 100, 100);
       statsCtx.fillText("실패 수", 180, 100);
       statsCtx.fillText("실패율", 270, 100);
-      statsCtx.fillText("샷 평균시간", 360, 100);
-      statsCtx.fillText("성공샷 평균시간", 500, 100);
-      statsCtx.fillText("실패샷 평균시간", 660, 100);
+      statsCtx.fillText("클릭_샷 평균시간", 360, 100);
+      statsCtx.fillText("클릭_성공샷 평균시간", 520, 100);
+      statsCtx.fillText("클릭_실패샷 평균시간", 700, 100);
 
       // 각 타겟별
       statsCtx.font = "14px sans-serif";
@@ -630,55 +672,86 @@
         statsCtx.fillText(`${stat.fails}`, 180, y);
         statsCtx.fillText(`${failRate}%`, 270, y);
         statsCtx.fillText(`${avgAll}초`, 360, y);
-        statsCtx.fillText(`${avgSuccess}초`, 500, y);
-        statsCtx.fillText(`${avgFail}초`, 660, y);
+        statsCtx.fillText(`${avgSuccess}초`, 520, y);
+        statsCtx.fillText(`${avgFail}초`, 700, y);
       });
+
+      // 1번 타겟의 수기 첫발 통계 추가
+      if (target1ManualFirstStats.allTimes.length > 0) {
+        const y = 290;
+        statsCtx.font = "bold 14px sans-serif";
+        statsCtx.fillText("1번 타겟 수기 첫발 통계:", 20, y);
+        
+        statsCtx.font = "14px sans-serif";
+        const manualAvgAll = (target1ManualFirstStats.allTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.allTimes.length).toFixed(1);
+        const manualAvgSuccess = target1ManualFirstStats.successTimes.length > 0 
+          ? (target1ManualFirstStats.successTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.successTimes.length).toFixed(1) 
+          : "-";
+        const manualAvgFail = target1ManualFirstStats.failTimes.length > 0 
+          ? (target1ManualFirstStats.failTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.failTimes.length).toFixed(1) 
+          : "-";
+
+        statsCtx.fillText(`수기_첫발 평균시간: ${manualAvgAll}초`, 250, y);
+        statsCtx.fillText(`수기_첫발 성공샷 평균: ${manualAvgSuccess}초`, 450, y);
+        statsCtx.fillText(`수기_첫발 실패샷 평균: ${manualAvgFail}초`, 700, y);
+      }
 
       // 라운드별 통계
       statsCtx.font = "bold 18px sans-serif";
-      statsCtx.fillText("📊 라운드별 통계", 20, 300);
+      statsCtx.fillText("📊 라운드별 통계", 20, 330);
 
-      statsCtx.font = "bold 14px sans-serif";
-      statsCtx.fillText("라운드", 20, 330);
-      statsCtx.fillText("샷 수", 100, 330);
-      statsCtx.fillText("실패 수", 180, 330);
-      statsCtx.fillText("실패율", 270, 330);
-      statsCtx.fillText("총 수행시간", 360, 330);
-      statsCtx.fillText("첫발 시간", 500, 330);
-      statsCtx.fillText("템포(2-5)", 620, 330);
-      statsCtx.fillText("심박수", 760, 330);
-      statsCtx.fillText("HR존", 860, 330);
+      statsCtx.font = "bold 13px sans-serif";
+      statsCtx.fillText("라운드", 20, 360);
+      statsCtx.fillText("샷 수", 90, 360);
+      statsCtx.fillText("실패 수", 150, 360);
+      statsCtx.fillText("실패율", 220, 360);
+      statsCtx.fillText("클릭_총 수행시간", 290, 360);
+      statsCtx.fillText("클릭_첫발시간", 430, 360);
+      statsCtx.fillText("클릭_템포(2~5)", 560, 360);
+      statsCtx.fillText("수기_총 수행시간", 690, 360);
+      statsCtx.fillText("수기_첫발", 830, 360);
+      statsCtx.fillText("수기_템포", 930, 360);
+      statsCtx.fillText("심박수", 1020, 360);
+      statsCtx.fillText("HR존", 1090, 360);
 
       // 각 라운드별
-      statsCtx.font = "14px sans-serif";
+      statsCtx.font = "13px sans-serif";
       allData.forEach((round, roundIdx) => {
-        const y = 360 + roundIdx * 30;
+        const y = 390 + roundIdx * 30;
         
         const shotCount = round.shots.length;
         const failCount = round.shots.filter(s => !s.success).length;
         const failRate = ((failCount / shotCount) * 100).toFixed(1);
         
-        // 총 수행시간 (모든 템포의 합)
-        const totalTime = round.shots.reduce((sum, shot) => sum + shot.tempo, 0).toFixed(1);
+        // 클릭 총 수행시간 (모든 템포의 합)
+        const clickTotalTime = round.shots.reduce((sum, shot) => sum + shot.tempo, 0).toFixed(1);
         
-        // 첫발 시간 (첫 번째 샷의 템포)
-        const firstShotTime = round.shots[0].tempo.toFixed(1);
+        // 클릭 첫발 시간 (첫 번째 샷의 템포)
+        const clickFirstShotTime = round.shots[0].tempo.toFixed(1);
         
-        // 템포 (2번째부터 5번째까지의 평균)
+        // 클릭 템포 (2번째부터 5번째까지의 평균)
         const tempoShots = round.shots.slice(1); // 2번째부터 5번째
-        const avgTempo = tempoShots.length > 0 
+        const clickAvgTempo = tempoShots.length > 0 
           ? (tempoShots.reduce((sum, shot) => sum + shot.tempo, 0) / tempoShots.length).toFixed(1)
           : "-";
 
+        // 수기 데이터
+        const manualTotal = round.manualTotal !== null ? round.manualTotal.toFixed(1) : "-";
+        const manualFirst = round.manualFirst !== null ? round.manualFirst.toFixed(1) : "-";
+        const manualTempo = round.manualTempo !== null ? round.manualTempo.toFixed(1) : "-";
+
         statsCtx.fillText(`R${round.round}`, 20, y);
-        statsCtx.fillText(`${shotCount}`, 100, y);
-        statsCtx.fillText(`${failCount}`, 180, y);
-        statsCtx.fillText(`${failRate}%`, 270, y);
-        statsCtx.fillText(`${totalTime}초`, 360, y);
-        statsCtx.fillText(`${firstShotTime}초`, 500, y);
-        statsCtx.fillText(`${avgTempo}초`, 620, y);
-        statsCtx.fillText(`${round.heartrate}`, 760, y);
-        statsCtx.fillText(`존${round.hrZone}`, 860, y);
+        statsCtx.fillText(`${shotCount}`, 90, y);
+        statsCtx.fillText(`${failCount}`, 150, y);
+        statsCtx.fillText(`${failRate}%`, 220, y);
+        statsCtx.fillText(`${clickTotalTime}초`, 290, y);
+        statsCtx.fillText(`${clickFirstShotTime}초`, 430, y);
+        statsCtx.fillText(`${clickAvgTempo}초`, 560, y);
+        statsCtx.fillText(`${manualTotal}초`, 690, y);
+        statsCtx.fillText(`${manualFirst}초`, 830, y);
+        statsCtx.fillText(`${manualTempo}초`, 930, y);
+        statsCtx.fillText(`${round.heartrate}`, 1020, y);
+        statsCtx.fillText(`존${round.hrZone}`, 1090, y);
       });
     }
 
@@ -691,11 +764,11 @@
 
       // 심박수 존 정보 수집
       const hrZones = {
-        zone1: { min: parseInt(document.getElementById("zone1_min").value) || null, max: parseInt(document.getElementById("zone1_max").value) || null },
-        zone2: { min: parseInt(document.getElementById("zone2_min").value) || null, max: parseInt(document.getElementById("zone2_max").value) || null },
-        zone3: { min: parseInt(document.getElementById("zone3_min").value) || null, max: parseInt(document.getElementById("zone3_max").value) || null },
-        zone4: { min: parseInt(document.getElementById("zone4_min").value) || null, max: parseInt(document.getElementById("zone4_max").value) || null },
-        zone5: { min: parseInt(document.getElementById("zone5_min").value) || null, max: parseInt(document.getElementById("zone5_max").value) || null }
+        zone1: parseInt(document.getElementById("zone1").value) || null,
+        zone2: parseInt(document.getElementById("zone2").value) || null,
+        zone3: parseInt(document.getElementById("zone3").value) || null,
+        zone4: parseInt(document.getElementById("zone4").value) || null,
+        zone5: parseInt(document.getElementById("zone5").value) || null
       };
 
       const jsonData = {
