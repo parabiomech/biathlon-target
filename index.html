@@ -166,16 +166,16 @@
       <label style="margin-bottom: 10px; display: block; font-weight: bold;">수기 사격시간 입력 (Manual Shooting Time)</label>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
         <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_총시간 (초)</label>
+          <input type="number" id="manual_total" placeholder="총 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
           <label style="font-size: 12px; margin-bottom: 3px;">수기_첫발 (초)</label>
           <input type="number" id="manual_first" placeholder="첫발 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
         </div>
         <div>
           <label style="font-size: 12px; margin-bottom: 3px;">수기_템포 (초)</label>
-          <input type="number" id="manual_tempo" placeholder="템포 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
-        </div>
-        <div>
-          <label style="font-size: 12px; margin-bottom: 3px;">수기_총시간 (초)</label>
-          <input type="number" id="manual_total" placeholder="자동계산" readonly style="width: 100%; padding: 5px; font-size: 12px; background: #e9ecef;">
+          <input type="number" id="manual_tempo" placeholder="자동계산" readonly style="width: 100%; padding: 5px; font-size: 12px; background: #e9ecef;">
         </div>
       </div>
     </div>
@@ -242,17 +242,17 @@
       return "-"; // 존 범위에 해당 없음
     }
 
-    // 수기 총시간 자동계산
-    function updateManualTotal() {
+    // 수기 템포 자동계산 (총시간 - 첫발)
+    function updateManualTempo() {
+      const total = parseFloat(document.getElementById("manual_total").value) || 0;
       const first = parseFloat(document.getElementById("manual_first").value) || 0;
-      const tempo = parseFloat(document.getElementById("manual_tempo").value) || 0;
-      const total = first + tempo;
-      document.getElementById("manual_total").value = total > 0 ? total.toFixed(1) : "";
+      const tempo = total - first;
+      document.getElementById("manual_tempo").value = tempo > 0 ? tempo.toFixed(1) : "";
     }
 
     // 수기 시간 입력 필드에 이벤트 리스너 추가
-    document.getElementById("manual_first").addEventListener("input", updateManualTotal);
-    document.getElementById("manual_tempo").addEventListener("input", updateManualTotal);
+    document.getElementById("manual_total").addEventListener("input", updateManualTempo);
+    document.getElementById("manual_first").addEventListener("input", updateManualTempo);
 
     // 타겟 그리기
     function drawTargets() {
