@@ -592,6 +592,83 @@
           accumulatedCtx.fill();
         });
       });
+
+      // 타겟별 중심점 및 95% 타원 그리기
+      for (let targetIdx = 0; targetIdx < 5; targetIdx++) {
+        const targetShots = [];
+        allData.forEach(round => {
+          round.shots.forEach(shot => {
+            if (shot.targetIndex === targetIdx + 1) {
+              targetShots.push({ x: shot.x, y: shot.y });
+            }
+          });
+        });
+
+        if (targetShots.length >= 3) {
+          // 중심점 계산 (산술 평균)
+          const centerX = targetShots.reduce((sum, p) => sum + p.x, 0) / targetShots.length;
+          const centerY = targetShots.reduce((sum, p) => sum + p.y, 0) / targetShots.length;
+
+          // 타겟 화면 좌표
+          const x = targetIdx * (TARGET_SIZE + TARGET_SPACING) + 25;
+          const y = 30;
+          const cx = x + TARGET_SIZE / 2;
+          const cy = y + TARGET_SIZE / 2;
+          const displayCenterX = cx + centerX;
+          const displayCenterY = cy + centerY;
+
+          // 중심점 표시 (회색 십자가)
+          accumulatedCtx.strokeStyle = "#999";
+          accumulatedCtx.lineWidth = 2;
+          accumulatedCtx.beginPath();
+          accumulatedCtx.moveTo(displayCenterX - 8, displayCenterY);
+          accumulatedCtx.lineTo(displayCenterX + 8, displayCenterY);
+          accumulatedCtx.moveTo(displayCenterX, displayCenterY - 8);
+          accumulatedCtx.lineTo(displayCenterX, displayCenterY + 8);
+          accumulatedCtx.stroke();
+
+          // 공분산 행렬 계산
+          let covXX = 0, covYY = 0, covXY = 0;
+          targetShots.forEach(shot => {
+            const dx = shot.x - centerX;
+            const dy = shot.y - centerY;
+            covXX += dx * dx;
+            covYY += dy * dy;
+            covXY += dx * dy;
+          });
+          covXX /= targetShots.length;
+          covYY /= targetShots.length;
+          covXY /= targetShots.length;
+
+          // 고유값 계산 (eigenvalues)
+          const trace = covXX + covYY;
+          const det = covXX * covYY - covXY * covXY;
+          const lambda1 = trace / 2 + Math.sqrt(trace * trace / 4 - det);
+          const lambda2 = trace / 2 - Math.sqrt(trace * trace / 4 - det);
+
+          // 95% 신뢰타원 (카이제곱 분포, 2자유도, 95% = 5.991)
+          const scale = Math.sqrt(5.991);
+          const semiMajor = Math.sqrt(Math.abs(lambda1)) * scale;
+          const semiMinor = Math.sqrt(Math.abs(lambda2)) * scale;
+
+          // 회전 각도 계산
+          let angle = 0;
+          if (Math.abs(covXY) > 0.0001) {
+            angle = Math.atan2(lambda1 - covXX, covXY);
+          } else {
+            angle = covXX >= covYY ? 0 : Math.PI / 2;
+          }
+
+          // 95% 타원 그리기 (회색 점선)
+          accumulatedCtx.strokeStyle = "#999";
+          accumulatedCtx.lineWidth = 1.5;
+          accumulatedCtx.setLineDash([5, 3]);
+          accumulatedCtx.beginPath();
+          accumulatedCtx.ellipse(displayCenterX, displayCenterY, semiMajor, semiMinor, angle, 0, 2 * Math.PI);
+          accumulatedCtx.stroke();
+          accumulatedCtx.setLineDash([]);
+        }
+      }
     }
 
     // 누적 캔버스 클릭 이벤트 (수정 모드에서 샷 이동)
@@ -776,11 +853,21 @@
       statsCtx.fillText("타겟", 20, 100);
       statsCtx.fillText("샷 수", 100, 100);
       statsCtx.fillText("실패 수", 180, 100);
-      statsCtx.fillText("명중률", 270, 100);
-      statsCtx.fillText("실패율", 350, 100);
-      statsCtx.fillText("클릭_샷 평균시간", 440, 100);
-      statsCtx.fillText("클릭_성공샷 평균시간", 600, 100);
-      statsCtx.fillText("클릭_실패샷 평균시간", 780, 100);
+      statsCtx.fillText("명중률", 260, 100);
+      statsCtx.fillText("실패율", 340, 100);
+      statsCtx.fillText("방향", 420, 100);
+      statsCtx.fillText("클릭_평균시간", 480, 100);
+      statsCtx.fillText("성공샷 평균", 620, 100);
+      statsCtx.fillText("실패샷 평균", 760, 100);
+
+      // 각 타겟별 샷 좌표 수집 (벡터 방향 계산용)
+      const targetVectors = Array.from({length: 5}, () => []);
+      allData.forEach(round => {
+        round.shots.forEach(shot => {
+          const idx = shot.targetIndex - 1;
+          targetVectors[idx].push({ x: shot.x, y: shot.y });
+        });
+      });
 
       // 각 타겟별
       statsCtx.font = "14px sans-serif";
@@ -799,13 +886,35 @@
           ? (stat.failTimes.reduce((a, b) => a + b, 0) / stat.failTimes.length).toFixed(1) 
           : "-";
 
+        // 벡터 방향 계산 (중심점으로부터의 평균 방향)
+        let arrowText = "-";
+        if (targetVectors[idx].length > 0) {
+          const avgX = targetVectors[idx].reduce((sum, p) => sum + p.x, 0) / targetVectors[idx].length;
+          const avgY = targetVectors[idx].reduce((sum, p) => sum + p.y, 0) / targetVectors[idx].length;
+          const angle = Math.atan2(avgY, avgX) * 180 / Math.PI;
+          
+          // 각도를 8방향 화살표로 변환
+          if (angle >= -22.5 && angle < 22.5) arrowText = "→";
+          else if (angle >= 22.5 && angle < 67.5) arrowText = "↘";
+          else if (angle >= 67.5 && angle < 112.5) arrowText = "↓";
+          else if (angle >= 112.5 && angle < 157.5) arrowText = "↙";
+          else if (angle >= 157.5 || angle < -157.5) arrowText = "←";
+          else if (angle >= -157.5 && angle < -112.5) arrowText = "↖";
+          else if (angle >= -112.5 && angle < -67.5) arrowText = "↑";
+          else if (angle >= -67.5 && angle < -22.5) arrowText = "↗";
+        }
+
         statsCtx.fillText(`${idx + 1}번`, 20, y);
         statsCtx.fillText(`${stat.total}`, 100, y);
         statsCtx.fillText(`${stat.fails}`, 180, y);
-        statsCtx.fillText(`${failRate}%`, 270, y);
-        statsCtx.fillText(`${avgAll}초`, 360, y);
-        statsCtx.fillText(`${avgSuccess}초`, 520, y);
-        statsCtx.fillText(`${avgFail}초`, 700, y);
+        statsCtx.fillText(`${hitRate}%`, 260, y);
+        statsCtx.fillText(`${failRate}%`, 340, y);
+        statsCtx.font = "20px sans-serif";
+        statsCtx.fillText(arrowText, 420, y);
+        statsCtx.font = "14px sans-serif";
+        statsCtx.fillText(`${avgAll}초`, 480, y);
+        statsCtx.fillText(`${avgSuccess}초`, 620, y);
+        statsCtx.fillText(`${avgFail}초`, 760, y);
       });
 
       // 1번 타겟의 수기 첫발 통계 추가
@@ -836,15 +945,16 @@
       statsCtx.fillText("라운드", 20, 360);
       statsCtx.fillText("샷 수", 90, 360);
       statsCtx.fillText("실패 수", 150, 360);
-      statsCtx.fillText("실패율", 220, 360);
-      statsCtx.fillText("클릭_총 수행시간", 290, 360);
-      statsCtx.fillText("클릭_첫발시간", 430, 360);
-      statsCtx.fillText("클릭_템포(2~5)", 560, 360);
-      statsCtx.fillText("수기_총 수행시간", 690, 360);
-      statsCtx.fillText("수기_첫발", 830, 360);
-      statsCtx.fillText("수기_템포", 930, 360);
-      statsCtx.fillText("심박수", 1020, 360);
-      statsCtx.fillText("HR존", 1090, 360);
+      statsCtx.fillText("명중률", 220, 360);
+      statsCtx.fillText("실패율", 290, 360);
+      statsCtx.fillText("심박수", 360, 360);
+      statsCtx.fillText("HR존", 440, 360);
+      statsCtx.fillText("수기_총시간", 500, 360);
+      statsCtx.fillText("수기_첫발", 610, 360);
+      statsCtx.fillText("수기_템포", 710, 360);
+      statsCtx.fillText("클릭_총시간", 810, 360);
+      statsCtx.fillText("클릭_첫발", 920, 360);
+      statsCtx.fillText("클릭_템포", 1020, 360);
 
       // 각 라운드별
       statsCtx.font = "13px sans-serif";
@@ -853,6 +963,8 @@
         
         const shotCount = round.shots.length;
         const failCount = round.shots.filter(s => !s.success).length;
+        const successCount = shotCount - failCount;
+        const hitRate = ((successCount / shotCount) * 100).toFixed(1);
         const failRate = ((failCount / shotCount) * 100).toFixed(1);
         
         // 클릭 총 수행시간 (모든 템포의 합)
@@ -875,15 +987,16 @@
         statsCtx.fillText(`R${round.round}`, 20, y);
         statsCtx.fillText(`${shotCount}`, 90, y);
         statsCtx.fillText(`${failCount}`, 150, y);
-        statsCtx.fillText(`${failRate}%`, 220, y);
-        statsCtx.fillText(`${clickTotalTime}초`, 290, y);
-        statsCtx.fillText(`${clickFirstShotTime}초`, 430, y);
-        statsCtx.fillText(`${clickAvgTempo}초`, 560, y);
-        statsCtx.fillText(`${manualTotal}초`, 690, y);
-        statsCtx.fillText(`${manualFirst}초`, 830, y);
-        statsCtx.fillText(`${manualTempo}초`, 930, y);
-        statsCtx.fillText(`${round.heartrate}`, 1020, y);
-        statsCtx.fillText(`존${round.hrZone}`, 1090, y);
+        statsCtx.fillText(`${hitRate}%`, 220, y);
+        statsCtx.fillText(`${failRate}%`, 290, y);
+        statsCtx.fillText(`${round.heartrate}`, 360, y);
+        statsCtx.fillText(`존${round.hrZone}`, 440, y);
+        statsCtx.fillText(`${manualTotal}초`, 500, y);
+        statsCtx.fillText(`${manualFirst}초`, 610, y);
+        statsCtx.fillText(`${manualTempo}초`, 710, y);
+        statsCtx.fillText(`${clickTotalTime}초`, 810, y);
+        statsCtx.fillText(`${clickFirstShotTime}초`, 920, y);
+        statsCtx.fillText(`${clickAvgTempo}초`, 1020, y);
       });
     }
 

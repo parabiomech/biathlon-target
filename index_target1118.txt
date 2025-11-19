@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>바이애슬론 타겟 로거 (Para Biathlon Target Logger)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+    .form-section {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .fixed-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .round-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .shooting-area {
+      margin: 20px 0;
+    }
+    #targetCanvas {
+      border: none;
+      cursor: crosshair;
+      background: #f5f5f5;
+      display: block;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    #accumulatedCanvas {
+      border: none;
+      background: #f5f5f5;
+      display: block;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    #statsCanvas {
+      border: none;
+      background: #f5f5f5;
+      display: block;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    .button-group {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    .btn-warning {
+      background: #ffc107;
+      color: black;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .current-round {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #007bff;
+    }
+    .round-selector {
+      display: none;
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    .round-selector.active {
+      display: block;
+    }
+    .round-btn {
+      padding: 8px 15px;
+      margin: 5px;
+      border: 2px solid #007bff;
+      background: white;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .round-btn.selected {
+      background: #007bff;
+      color: white;
+    }
+    .edit-input {
+      width: 80px;
+      padding: 4px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .edit-input:disabled {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎯 바이애슬론 타겟 로거 (Para Biathlon Target Logger)</h2>
+
+  <div class="form-section">
+    <div class="fixed-info">
+      <div>
+        <label>선수명 (Athlete)</label>
+        <input type="text" id="athlete" placeholder="이름 입력">
+      </div>
+      <div>
+        <label>상황 (Situation)</label>
+        <select id="situation">
+          <option>훈련</option>
+          <option>경기</option>
+        </select>
+      </div>
+      <div>
+        <label>종목명/훈련명 (Event/Training)</label>
+        <input type="text" id="event" placeholder="종목:FIS캐나다대회_sprint / 훈련:평창코스">
+      </div>
+    </div>
+    
+    <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 6px;">
+      <label style="margin-bottom: 10px; display: block;">심박수 존 최댓값 (Heart Rate Zone Max Values)</label>
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 1 (0~존1)</label>
+          <input type="number" id="zone1" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 2 (존1~존2)</label>
+          <input type="number" id="zone2" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 3 (존2~존3)</label>
+          <input type="number" id="zone3" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 4 (존3~존4)</label>
+          <input type="number" id="zone4" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">존 5 (존4~존5)</label>
+          <input type="number" id="zone5" placeholder="최댓값" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+      </div>
+    </div>
+    
+    <div class="round-info">
+      <div>
+        <label>심박수 (Heart Rate)</label>
+        <input type="number" id="heartrate" placeholder="BPM 입력">
+      </div>
+      <div>
+        <label>현재 라운드</label>
+        <div class="current-round" id="currentRound">Round 1</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px;">
+      <label style="margin-bottom: 10px; display: block; font-weight: bold;">수기 사격시간 입력 (Manual Shooting Time)</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_첫발 (초)</label>
+          <input type="number" id="manual_first" placeholder="첫발 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_총시간 (초)</label>
+          <input type="number" id="manual_total" placeholder="총 시간" step="0.1" style="width: 100%; padding: 5px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; margin-bottom: 3px;">수기_템포 (초)</label>
+          <input type="number" id="manual_tempo" placeholder="자동계산" readonly style="width: 100%; padding: 5px; font-size: 12px; background: #e9ecef;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shooting-area">
+    <canvas id="targetCanvas" width="1150" height="260"></canvas>
+    
+    <div class="button-group">
+      <button class="btn-primary" id="startBtn" onclick="startShooting()">사격 시작</button>
+      <button class="btn-success" id="confirmBtn" onclick="confirmRound()" disabled>확인 (다음 라운드)</button>
+      <button class="btn-warning" onclick="undoLast()">Undo (마지막 취소)</button>
+      <button class="btn-danger" onclick="resetRound()">Reset (라운드 초기화)</button>
+    </div>
+  </div>
+
+  <h3>📊 누적 샷 위치 시각화</h3>
+  <div class="round-selector" id="roundSelector">
+    <strong>수정할 라운드 선택:</strong>
+    <div id="roundButtons"></div>
+  </div>
+  <canvas id="accumulatedCanvas" width="1150" height="260"></canvas>
+
+  <h3>📊 누적 데이터 통계</h3>
+  <canvas id="statsCanvas" width="1150" height="500"></canvas>
+  <div id="editStatsTable" style="display:none; margin-top:20px;"></div>
+
+  <div class="button-group">
+    <button class="btn-primary" id="editModeBtn" onclick="toggleEditMode()">✏️ 데이터 수정 활성화</button>
+    <button class="btn-success" onclick="saveJSON()">💾 데이터 저장 (JSON)</button>
+  </div>
+
+  <script>
+    // Canvas 설정
+    const targetCanvas = document.getElementById("targetCanvas");
+    const targetCtx = targetCanvas.getContext("2d");
+    const accumulatedCanvas = document.getElementById("accumulatedCanvas");
+    const accumulatedCtx = accumulatedCanvas.getContext("2d");
+    const statsCanvas = document.getElementById("statsCanvas");
+    const statsCtx = statsCanvas.getContext("2d");
+
+    // 데이터 저장
+    let allData = []; // 모든 라운드 데이터
+    let currentRoundShots = []; // 현재 라운드의 5개 샷
+    let currentRound = 1;
+    let shootingStarted = false;
+    let shootingStartTime = null;
+    let lastShotTime = null;
+    
+    // 수정 모드
+    let editMode = false;
+    let selectedRoundForEdit = null; // 수정할 라운드 인덱스
+    let selectedShot = null; // 선택된 샷
+
+    // 타겟 설정 (5개 칸, 각 200x200으로 확대)
+    const TARGET_SIZE = 200;
+    const TARGET_SPACING = 30;
+    const OUTER_RADIUS = 90; // 큰 원 반지름
+    const INNER_RADIUS = 30; // 작은 원 반지름 (1/3)
+
+    // 심박수 존 계산 함수
+    function getHeartRateZone(hr) {
+      const zone1 = parseInt(document.getElementById("zone1").value) || 0;
+      const zone2 = parseInt(document.getElementById("zone2").value) || 0;
+      const zone3 = parseInt(document.getElementById("zone3").value) || 0;
+      const zone4 = parseInt(document.getElementById("zone4").value) || 0;
+      const zone5 = parseInt(document.getElementById("zone5").value) || 0;
+
+      if (zone1 > 0 && hr <= zone1) return 1;
+      if (zone2 > 0 && hr <= zone2) return 2;
+      if (zone3 > 0 && hr <= zone3) return 3;
+      if (zone4 > 0 && hr <= zone4) return 4;
+      if (zone5 > 0 && hr <= zone5) return 5;
+      
+      return "-"; // 존 범위에 해당 없음
+    }
+
+    // 수기 템포 자동계산 (총시간 - 첫발)
+    function updateManualTempo() {
+      const total = parseFloat(document.getElementById("manual_total").value) || 0;
+      const first = parseFloat(document.getElementById("manual_first").value) || 0;
+      const tempo = total - first;
+      document.getElementById("manual_tempo").value = tempo > 0 ? tempo.toFixed(1) : "";
+    }
+
+    // 수기 시간 입력 필드에 이벤트 리스너 추가
+    document.getElementById("manual_total").addEventListener("input", updateManualTempo);
+    document.getElementById("manual_first").addEventListener("input", updateManualTempo);
+
+    // 타겟 그리기
+    function drawTargets() {
+      targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+      targetCtx.fillStyle = "#f5f5f5";
+      targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+      for (let i = 0; i < 5; i++) {
+        const x = i * (TARGET_SIZE + TARGET_SPACING) + 25;
+        const y = 30;
+        
+        // 타겟 배경 (200x200 칸)
+        targetCtx.strokeStyle = "#999";
+        targetCtx.strokeRect(x, y, TARGET_SIZE, TARGET_SIZE);
+        
+        // 타겟 중심
+        const cx = x + TARGET_SIZE / 2;
+        const cy = y + TARGET_SIZE / 2;
+        
+        // 큰 원
+        targetCtx.strokeStyle = "#000";
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        targetCtx.arc(cx, cy, OUTER_RADIUS, 0, 2 * Math.PI);
+        targetCtx.stroke();
+        
+        // 작은 원 (성공 영역) - 검은색
+        targetCtx.strokeStyle = "#000";
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        targetCtx.arc(cx, cy, INNER_RADIUS, 0, 2 * Math.PI);
+        targetCtx.stroke();
+        
+        // 타겟 번호
+        targetCtx.fillStyle = "#000";
+        targetCtx.font = "bold 16px sans-serif";
+        targetCtx.fillText(`타겟 ${i + 1}`, cx - 20, y - 10);
+      }
+
+      // 현재 라운드의 샷 표시
+      currentRoundShots.forEach((shot, idx) => {
+        const targetIdx = shot.targetIndex;
+        const x = (targetIdx - 1) * (TARGET_SIZE + TARGET_SPACING) + 25;
+        const y = 30;
+        const cx = x + TARGET_SIZE / 2;
+        const cy = y + TARGET_SIZE / 2;
+        
+        // 샷 위치
+        const shotX = cx + shot.x;
+        const shotY = cy + shot.y;
+        
+        // 성공은 파랑, 실패는 빨강
+        targetCtx.fillStyle = shot.success ? "#00f" : "#f00";
+        targetCtx.beginPath();
+        targetCtx.arc(shotX, shotY, 5, 0, 2 * Math.PI);
+        targetCtx.fill();
+        
+        // 샷 번호
+        targetCtx.fillStyle = "#000";
+        targetCtx.font = "12px sans-serif";
+        targetCtx.fillText(idx + 1, shotX + 8, shotY - 8);
+      });
+    }
+
+    // 타겟 클릭 이벤트
+    targetCanvas.addEventListener("click", (e) => {
+      if (!shootingStarted) {
+        alert("'사격 시작' 버튼을 먼저 눌러주세요!");
+        return;
+      }
+
+      if (currentRoundShots.length >= 5) {
+        alert("이미 5개의 샷을 완료했습니다. '확인' 버튼을 눌러주세요.");
+        return;
+      }
+
+      const rect = targetCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      // 어느 타겟인지 확인
+      let targetIndex = -1;
+      for (let i = 0; i < 5; i++) {
+        const x = i * (TARGET_SIZE + TARGET_SPACING) + 25;
+        const y = 30;
+        if (clickX >= x && clickX <= x + TARGET_SIZE && 
+            clickY >= y && clickY <= y + TARGET_SIZE) {
+          targetIndex = i + 1;
+          break;
+        }
+      }
+
+      if (targetIndex === -1) {
+        alert("타겟 안을 클릭해주세요!");
+        return;
+      }
+
+      // 타겟 내 상대 좌표 계산
+      const x = (targetIndex - 1) * (TARGET_SIZE + TARGET_SPACING) + 25;
+      const y = 30;
+      const cx = x + TARGET_SIZE / 2;
+      const cy = y + TARGET_SIZE / 2;
+      const relX = clickX - cx;
+      const relY = clickY - cy;
+
+      // 성공/실패 판정
+      const distance = Math.sqrt(relX * relX + relY * relY);
+      const success = distance <= INNER_RADIUS;
+
+      // 시간 계산
+      const currentTime = Date.now();
+      let tempo = 0;
+      if (lastShotTime) {
+        tempo = ((currentTime - lastShotTime) / 1000).toFixed(1); // 0.1초 단위
+      } else {
+        tempo = ((currentTime - shootingStartTime) / 1000).toFixed(1);
+      }
+      lastShotTime = currentTime;
+
+      // 데이터 저장
+      const shotData = {
+        timestamp: new Date().toISOString(),
+        targetIndex: targetIndex,
+        x: Math.round(relX),
+        y: Math.round(relY),
+        distance: Math.round(distance * 10) / 10,
+        success: success,
+        tempo: parseFloat(tempo)
+      };
+
+      currentRoundShots.push(shotData);
+      drawTargets();
+
+      // 5개 완료 시 확인 버튼 활성화
+      if (currentRoundShots.length === 5) {
+        document.getElementById("confirmBtn").disabled = false;
+      }
+    });
+
+    // 사격 시작
+    function startShooting() {
+      const athlete = document.getElementById("athlete").value;
+      const situation = document.getElementById("situation").value;
+      const event = document.getElementById("event").value;
+      const heartrate = document.getElementById("heartrate").value;
+
+      if (!athlete || !event) {
+        alert("선수명과 종목을 입력해주세요!");
+        return;
+      }
+
+      shootingStarted = true;
+      shootingStartTime = Date.now();
+      lastShotTime = null;
+      currentRoundShots = [];
+      
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("confirmBtn").disabled = true;
+      
+      drawTargets();
+    }
+
+    // 라운드 확인 (다음 라운드로)
+    function confirmRound() {
+      if (currentRoundShots.length !== 5) {
+        alert("5개의 샷을 모두 완료해주세요!");
+        return;
+      }
+
+      const heartrate = document.getElementById("heartrate").value;
+      if (!heartrate) {
+        alert("심박수를 입력해주세요!");
+        return;
+      }
+
+      const hrValue = parseInt(heartrate);
+      const hrZone = getHeartRateZone(hrValue);
+
+      // 수기 시간 데이터 수집
+      const manualFirst = parseFloat(document.getElementById("manual_first").value) || null;
+      const manualTempo = parseFloat(document.getElementById("manual_tempo").value) || null;
+      const manualTotal = (manualFirst && manualTempo) ? manualFirst + manualTempo : null;
+
+      // 라운드 데이터 저장
+      const roundData = {
+        round: currentRound,
+        athlete: document.getElementById("athlete").value,
+        situation: document.getElementById("situation").value,
+        event: document.getElementById("event").value,
+        heartrate: hrValue,
+        hrZone: hrZone,
+        manualFirst: manualFirst,
+        manualTempo: manualTempo,
+        manualTotal: manualTotal,
+        shots: [...currentRoundShots]
+      };
+
+      allData.push(roundData);
+
+      // 다음 라운드 준비
+      currentRound++;
+      currentRoundShots = [];
+      shootingStarted = false;
+      
+      document.getElementById("currentRound").textContent = `Round ${currentRound}`;
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("confirmBtn").disabled = true;
+      document.getElementById("heartrate").value = "";
+      document.getElementById("manual_first").value = "";
+      document.getElementById("manual_tempo").value = "";
+      document.getElementById("manual_total").value = "";
+
+      drawTargets();
+      drawAccumulated();
+      drawStats();
+    }
+
+    // 누적 샷 위치 그리기
+    function drawAccumulated() {
+      accumulatedCtx.clearRect(0, 0, accumulatedCanvas.width, accumulatedCanvas.height);
+      accumulatedCtx.fillStyle = "#f5f5f5";
+      accumulatedCtx.fillRect(0, 0, accumulatedCanvas.width, accumulatedCanvas.height);
+
+      // 5개 타겟 그리기
+      for (let i = 0; i < 5; i++) {
+        const x = i * (TARGET_SIZE + TARGET_SPACING) + 25;
+        const y = 30;
+        
+        // 타겟 배경
+        accumulatedCtx.strokeStyle = "#999";
+        accumulatedCtx.strokeRect(x, y, TARGET_SIZE, TARGET_SIZE);
+        
+        // 타겟 중심
+        const cx = x + TARGET_SIZE / 2;
+        const cy = y + TARGET_SIZE / 2;
+        
+        // 큰 원
+        accumulatedCtx.strokeStyle = "#000";
+        accumulatedCtx.lineWidth = 2;
+        accumulatedCtx.beginPath();
+        accumulatedCtx.arc(cx, cy, OUTER_RADIUS, 0, 2 * Math.PI);
+        accumulatedCtx.stroke();
+        
+        // 작은 원 (성공 영역) - 검은색
+        accumulatedCtx.strokeStyle = "#000";
+        accumulatedCtx.lineWidth = 2;
+        accumulatedCtx.beginPath();
+        accumulatedCtx.arc(cx, cy, INNER_RADIUS, 0, 2 * Math.PI);
+        accumulatedCtx.stroke();
+        
+        // 타겟 번호
+        accumulatedCtx.fillStyle = "#000";
+        accumulatedCtx.font = "bold 16px sans-serif";
+        accumulatedCtx.fillText(`타겟 ${i + 1}`, cx - 20, y - 10);
+      }
+
+      // 모든 라운드의 샷을 누적해서 표시
+      allData.forEach((round, roundIdx) => {
+        round.shots.forEach((shot, shotIdx) => {
+          const targetIdx = shot.targetIndex;
+          const x = (targetIdx - 1) * (TARGET_SIZE + TARGET_SPACING) + 25;
+          const y = 30;
+          const cx = x + TARGET_SIZE / 2;
+          const cy = y + TARGET_SIZE / 2;
+          
+          // 샷 위치
+          const shotX = cx + shot.x;
+          const shotY = cy + shot.y;
+          
+          // 수정 모드이고 선택된 라운드가 아니면 흐리게 표시
+          const isSelectedRound = editMode && selectedRoundForEdit === roundIdx;
+          const isOtherRound = editMode && selectedRoundForEdit !== null && selectedRoundForEdit !== roundIdx;
+          
+          // 선택된 샷은 노란색 테두리
+          if (isSelectedRound && selectedShot && selectedShot.shotIdx === shotIdx) {
+            accumulatedCtx.strokeStyle = "#ffeb3b";
+            accumulatedCtx.lineWidth = 3;
+            accumulatedCtx.beginPath();
+            accumulatedCtx.arc(shotX, shotY, 8, 0, 2 * Math.PI);
+            accumulatedCtx.stroke();
+          }
+          
+          // 샷 표시 (성공=파랑, 실패=빨강)
+          if (isOtherRound) {
+            // 다른 라운드는 흐리게
+            accumulatedCtx.fillStyle = shot.success ? "rgba(0, 0, 255, 0.2)" : "rgba(255, 0, 0, 0.2)";
+          } else {
+            accumulatedCtx.fillStyle = shot.success ? "#00f" : "#f00";
+          }
+          accumulatedCtx.beginPath();
+          accumulatedCtx.arc(shotX, shotY, 4, 0, 2 * Math.PI);
+          accumulatedCtx.fill();
+        });
+      });
+    }
+
+    // 누적 캔버스 클릭 이벤트 (수정 모드에서 샷 이동)
+    accumulatedCanvas.addEventListener("click", (e) => {
+      if (!editMode || selectedRoundForEdit === null) return;
+      
+      const rect = accumulatedCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      
+      const round = allData[selectedRoundForEdit];
+      
+      // 기존 샷 선택 확인
+      let foundShot = false;
+      round.shots.forEach((shot, shotIdx) => {
+        const targetIdx = shot.targetIndex;
+        const x = (targetIdx - 1) * (TARGET_SIZE + TARGET_SPACING) + 25;
+        const y = 30;
+        const cx = x + TARGET_SIZE / 2;
+        const cy = y + TARGET_SIZE / 2;
+        const shotX = cx + shot.x;
+        const shotY = cy + shot.y;
+        
+        const distance = Math.sqrt((clickX - shotX) ** 2 + (clickY - shotY) ** 2);
+        if (distance < 10) {
+          if (!selectedShot || selectedShot.shotIdx !== shotIdx) {
+            selectedShot = { shotIdx };
+            foundShot = true;
+          } else {
+            selectedShot = null;
+            foundShot = true;
+          }
+        }
+      });
+      
+      // 선택된 샷이 있고 타겟 영역 클릭 시 → 샷 이동
+      if (!foundShot && selectedShot) {
+        for (let i = 0; i < 5; i++) {
+          const x = i * (TARGET_SIZE + TARGET_SPACING) + 25;
+          const y = 30;
+          const cx = x + TARGET_SIZE / 2;
+          const cy = y + TARGET_SIZE / 2;
+          
+          const distanceFromCenter = Math.sqrt((clickX - cx) ** 2 + (clickY - cy) ** 2);
+          if (distanceFromCenter <= OUTER_RADIUS) {
+            const shot = round.shots[selectedShot.shotIdx];
+            shot.targetIndex = i + 1;
+            shot.x = clickX - cx;
+            shot.y = clickY - cy;
+            
+            // 성공/실패 재계산
+            const distance = Math.sqrt(shot.x ** 2 + shot.y ** 2);
+            shot.success = distance <= INNER_RADIUS;
+            
+            selectedShot = null;
+            drawAccumulated();
+            drawStats();
+            return;
+          }
+        }
+      }
+      
+      drawAccumulated();
+    });
+
+    // Undo 마지막 샷
+    function undoLast() {
+      if (currentRoundShots.length > 0) {
+        // 마지막 샷 제거
+        currentRoundShots.pop();
+        
+        // 시간은 유지 (마지막 샷 직전의 시간으로 복원)
+        if (currentRoundShots.length > 0) {
+          // 마지막 남은 샷의 시간을 lastShotTime으로 설정
+          lastShotTime = shootingStartTime + 
+            currentRoundShots.reduce((sum, shot, idx) => {
+              if (idx === 0) return shot.tempo * 1000;
+              return sum + shot.tempo * 1000;
+            }, 0);
+        } else {
+          // 모든 샷이 취소되면 시작 시간으로 리셋
+          lastShotTime = null;
+        }
+        
+        if (currentRoundShots.length < 5) {
+          document.getElementById("confirmBtn").disabled = true;
+        }
+        drawTargets();
+      }
+    }
+
+    // 라운드 초기화
+    function resetRound() {
+      if (confirm("현재 라운드를 초기화하시겠습니까?")) {
+        currentRoundShots = [];
+        shootingStarted = false;
+        lastShotTime = null;
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("confirmBtn").disabled = true;
+        drawTargets();
+      }
+    }
+
+    // 통계 그리기
+    function drawStats() {
+      statsCtx.clearRect(0, 0, statsCanvas.width, statsCanvas.height);
+      statsCtx.fillStyle = "#f5f5f5";
+      statsCtx.fillRect(0, 0, statsCanvas.width, statsCanvas.height);
+
+      if (allData.length === 0) {
+        statsCtx.fillStyle = "#999";
+        statsCtx.font = "20px sans-serif";
+        statsCtx.fillText("데이터가 없습니다. 라운드를 완료하세요.", 400, 150);
+        return;
+      }
+
+      // 전체 통계 계산
+      let totalShots = 0;
+      let totalFails = 0;
+      let allTimes = [];
+      const targetStats = Array.from({length: 5}, () => ({
+        total: 0,
+        fails: 0,
+        allTimes: [],
+        successTimes: [],
+        failTimes: []
+      }));
+
+      // 1번 타겟용 수기 첫발 시간 통계
+      const target1ManualFirstStats = {
+        allTimes: [],
+        successTimes: [],
+        failTimes: []
+      };
+
+      allData.forEach(round => {
+        round.shots.forEach((shot, shotIdx) => {
+          totalShots++;
+          const idx = shot.targetIndex - 1;
+          targetStats[idx].total++;
+          targetStats[idx].allTimes.push(shot.tempo);
+          allTimes.push(shot.tempo);
+          
+          if (!shot.success) {
+            totalFails++;
+            targetStats[idx].fails++;
+            targetStats[idx].failTimes.push(shot.tempo);
+          } else {
+            targetStats[idx].successTimes.push(shot.tempo);
+          }
+
+          // 1번 타겟의 첫발(shotIdx==0)에 대한 수기 시간 통계
+          if (shot.targetIndex === 1 && shotIdx === 0 && round.manualFirst !== null) {
+            target1ManualFirstStats.allTimes.push(round.manualFirst);
+            if (shot.success) {
+              target1ManualFirstStats.successTimes.push(round.manualFirst);
+            } else {
+              target1ManualFirstStats.failTimes.push(round.manualFirst);
+            }
+          }
+        });
+      });
+
+      const totalSuccesses = totalShots - totalFails;
+      const totalHitRate = ((totalSuccesses / totalShots) * 100).toFixed(1);
+      const totalFailRate = ((totalFails / totalShots) * 100).toFixed(1);
+
+      // 제목
+      statsCtx.fillStyle = "#000";
+      statsCtx.font = "bold 18px sans-serif";
+      statsCtx.fillText("📊 누적 데이터 통계", 20, 30);
+
+      // 전체 통계
+      statsCtx.font = "16px sans-serif";
+      statsCtx.fillText(`전체 샷 수: ${totalShots}`, 20, 60);
+      statsCtx.fillText(`전체 실패 수: ${totalFails}`, 200, 60);
+      statsCtx.fillText(`전체 명중률: ${totalHitRate}%`, 380, 60);
+      statsCtx.fillText(`전체 실패율: ${totalFailRate}%`, 560, 60);
+
+      // 타겟별 통계 (테이블 형식)
+      statsCtx.font = "bold 14px sans-serif";
+      statsCtx.fillText("타겟", 20, 100);
+      statsCtx.fillText("샷 수", 100, 100);
+      statsCtx.fillText("실패 수", 180, 100);
+      statsCtx.fillText("명중률", 270, 100);
+      statsCtx.fillText("실패율", 350, 100);
+      statsCtx.fillText("클릭_샷 평균시간", 440, 100);
+      statsCtx.fillText("클릭_성공샷 평균시간", 600, 100);
+      statsCtx.fillText("클릭_실패샷 평균시간", 780, 100);
+
+      // 각 타겟별
+      statsCtx.font = "14px sans-serif";
+      targetStats.forEach((stat, idx) => {
+        const y = 130 + idx * 30;
+        const successes = stat.total - stat.fails;
+        const hitRate = stat.total > 0 ? ((successes / stat.total) * 100).toFixed(1) : "0.0";
+        const failRate = stat.total > 0 ? ((stat.fails / stat.total) * 100).toFixed(1) : "0.0";
+        const avgAll = stat.allTimes.length > 0 
+          ? (stat.allTimes.reduce((a, b) => a + b, 0) / stat.allTimes.length).toFixed(1) 
+          : "-";
+        const avgSuccess = stat.successTimes.length > 0 
+          ? (stat.successTimes.reduce((a, b) => a + b, 0) / stat.successTimes.length).toFixed(1) 
+          : "-";
+        const avgFail = stat.failTimes.length > 0 
+          ? (stat.failTimes.reduce((a, b) => a + b, 0) / stat.failTimes.length).toFixed(1) 
+          : "-";
+
+        statsCtx.fillText(`${idx + 1}번`, 20, y);
+        statsCtx.fillText(`${stat.total}`, 100, y);
+        statsCtx.fillText(`${stat.fails}`, 180, y);
+        statsCtx.fillText(`${failRate}%`, 270, y);
+        statsCtx.fillText(`${avgAll}초`, 360, y);
+        statsCtx.fillText(`${avgSuccess}초`, 520, y);
+        statsCtx.fillText(`${avgFail}초`, 700, y);
+      });
+
+      // 1번 타겟의 수기 첫발 통계 추가
+      if (target1ManualFirstStats.allTimes.length > 0) {
+        const y = 290;
+        statsCtx.font = "bold 14px sans-serif";
+        statsCtx.fillText("1번 타겟 수기 첫발 통계:", 20, y);
+        
+        statsCtx.font = "14px sans-serif";
+        const manualAvgAll = (target1ManualFirstStats.allTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.allTimes.length).toFixed(1);
+        const manualAvgSuccess = target1ManualFirstStats.successTimes.length > 0 
+          ? (target1ManualFirstStats.successTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.successTimes.length).toFixed(1) 
+          : "-";
+        const manualAvgFail = target1ManualFirstStats.failTimes.length > 0 
+          ? (target1ManualFirstStats.failTimes.reduce((a, b) => a + b, 0) / target1ManualFirstStats.failTimes.length).toFixed(1) 
+          : "-";
+
+        statsCtx.fillText(`수기_첫발 평균시간: ${manualAvgAll}초`, 250, y);
+        statsCtx.fillText(`수기_첫발 성공샷 평균: ${manualAvgSuccess}초`, 450, y);
+        statsCtx.fillText(`수기_첫발 실패샷 평균: ${manualAvgFail}초`, 700, y);
+      }
+
+      // 라운드별 통계
+      statsCtx.font = "bold 18px sans-serif";
+      statsCtx.fillText("📊 라운드별 통계", 20, 330);
+
+      statsCtx.font = "bold 13px sans-serif";
+      statsCtx.fillText("라운드", 20, 360);
+      statsCtx.fillText("샷 수", 90, 360);
+      statsCtx.fillText("실패 수", 150, 360);
+      statsCtx.fillText("실패율", 220, 360);
+      statsCtx.fillText("클릭_총 수행시간", 290, 360);
+      statsCtx.fillText("클릭_첫발시간", 430, 360);
+      statsCtx.fillText("클릭_템포(2~5)", 560, 360);
+      statsCtx.fillText("수기_총 수행시간", 690, 360);
+      statsCtx.fillText("수기_첫발", 830, 360);
+      statsCtx.fillText("수기_템포", 930, 360);
+      statsCtx.fillText("심박수", 1020, 360);
+      statsCtx.fillText("HR존", 1090, 360);
+
+      // 각 라운드별
+      statsCtx.font = "13px sans-serif";
+      allData.forEach((round, roundIdx) => {
+        const y = 390 + roundIdx * 30;
+        
+        const shotCount = round.shots.length;
+        const failCount = round.shots.filter(s => !s.success).length;
+        const failRate = ((failCount / shotCount) * 100).toFixed(1);
+        
+        // 클릭 총 수행시간 (모든 템포의 합)
+        const clickTotalTime = round.shots.reduce((sum, shot) => sum + shot.tempo, 0).toFixed(1);
+        
+        // 클릭 첫발 시간 (첫 번째 샷의 템포)
+        const clickFirstShotTime = round.shots[0].tempo.toFixed(1);
+        
+        // 클릭 템포 (2번째부터 5번째까지의 평균)
+        const tempoShots = round.shots.slice(1); // 2번째부터 5번째
+        const clickAvgTempo = tempoShots.length > 0 
+          ? (tempoShots.reduce((sum, shot) => sum + shot.tempo, 0) / tempoShots.length).toFixed(1)
+          : "-";
+
+        // 수기 데이터
+        const manualTotal = round.manualTotal !== null ? round.manualTotal.toFixed(1) : "-";
+        const manualFirst = round.manualFirst !== null ? round.manualFirst.toFixed(1) : "-";
+        const manualTempo = round.manualTempo !== null ? round.manualTempo.toFixed(1) : "-";
+
+        statsCtx.fillText(`R${round.round}`, 20, y);
+        statsCtx.fillText(`${shotCount}`, 90, y);
+        statsCtx.fillText(`${failCount}`, 150, y);
+        statsCtx.fillText(`${failRate}%`, 220, y);
+        statsCtx.fillText(`${clickTotalTime}초`, 290, y);
+        statsCtx.fillText(`${clickFirstShotTime}초`, 430, y);
+        statsCtx.fillText(`${clickAvgTempo}초`, 560, y);
+        statsCtx.fillText(`${manualTotal}초`, 690, y);
+        statsCtx.fillText(`${manualFirst}초`, 830, y);
+        statsCtx.fillText(`${manualTempo}초`, 930, y);
+        statsCtx.fillText(`${round.heartrate}`, 1020, y);
+        statsCtx.fillText(`존${round.hrZone}`, 1090, y);
+      });
+    }
+
+    // 데이터 수정 모드 토글
+    function toggleEditMode() {
+      editMode = !editMode;
+      const btn = document.getElementById("editModeBtn");
+      const roundSelector = document.getElementById("roundSelector");
+      const editTable = document.getElementById("editStatsTable");
+      
+      if (editMode) {
+        btn.textContent = "✅ 수정 완료 (저장)";
+        btn.className = "btn-danger";
+        roundSelector.classList.add("active");
+        statsCanvas.style.display = "none";
+        editTable.style.display = "block";
+        
+        // 라운드 버튼 생성
+        const roundButtons = document.getElementById("roundButtons");
+        roundButtons.innerHTML = "";
+        allData.forEach((round, idx) => {
+          const btn = document.createElement("button");
+          btn.textContent = `Round ${round.round}`;
+          btn.className = "round-btn";
+          btn.onclick = () => selectRoundForEdit(idx);
+          roundButtons.appendChild(btn);
+        });
+        
+        // 첫 번째 라운드 자동 선택
+        if (allData.length > 0) {
+          selectRoundForEdit(0);
+        }
+      } else {
+        btn.textContent = "✏️ 데이터 수정 활성화";
+        btn.className = "btn-primary";
+        roundSelector.classList.remove("active");
+        statsCanvas.style.display = "block";
+        editTable.style.display = "none";
+        selectedRoundForEdit = null;
+        selectedShot = null;
+        drawAccumulated();
+        drawStats();
+      }
+    }
+    
+    // 수정할 라운드 선택
+    function selectRoundForEdit(roundIdx) {
+      selectedRoundForEdit = roundIdx;
+      selectedShot = null;
+      
+      // 버튼 스타일 업데이트
+      document.querySelectorAll(".round-btn").forEach((btn, idx) => {
+        if (idx === roundIdx) {
+          btn.classList.add("selected");
+        } else {
+          btn.classList.remove("selected");
+        }
+      });
+      
+      // 수정 테이블 생성
+      renderEditTable();
+      drawAccumulated();
+    }
+    
+    // 수정 테이블 렌더링
+    function renderEditTable() {
+      if (selectedRoundForEdit === null) return;
+      
+      const round = allData[selectedRoundForEdit];
+      const editTable = document.getElementById("editStatsTable");
+      
+      const failCount = round.shots.filter(s => !s.success).length;
+      const failRate = ((failCount / round.shots.length) * 100).toFixed(1);
+      
+      const clickTotalTime = round.shots.reduce((sum, shot) => sum + shot.tempo, 0).toFixed(1);
+      const clickFirstShotTime = round.shots[0].tempo.toFixed(1);
+      const tempoShots = round.shots.slice(1);
+      const clickAvgTempo = tempoShots.length > 0 
+        ? (tempoShots.reduce((sum, shot) => sum + shot.tempo, 0) / tempoShots.length).toFixed(1)
+        : "-";
+      
+      editTable.innerHTML = `
+        <div style="background:#fff3cd; padding:20px; border-radius:8px;">
+          <h4 style="margin-top:0;">Round ${round.round} 데이터 수정</h4>
+          <p style="color:#666; margin-bottom:15px;">
+            샷 수: ${round.shots.length} | 실패 수: ${failCount} | 실패율: ${failRate}%<br>
+            클릭_총시간: ${clickTotalTime}초 | 클릭_첫발: ${clickFirstShotTime}초 | 클릭_템포: ${clickAvgTempo}초
+          </p>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:15px;">
+            <div>
+              <label style="font-weight:bold; margin-bottom:5px; display:block;">수기_첫발 (초)</label>
+              <input type="number" class="edit-input" step="0.1" value="${round.manualFirst || ''}" 
+                onchange="updateRoundField(${selectedRoundForEdit}, 'manualFirst', this.value)">
+            </div>
+            <div>
+              <label style="font-weight:bold; margin-bottom:5px; display:block;">수기_총시간 (초)</label>
+              <input type="number" class="edit-input" step="0.1" value="${round.manualTotal || ''}" 
+                onchange="updateRoundField(${selectedRoundForEdit}, 'manualTotal', this.value)">
+            </div>
+            <div>
+              <label style="font-weight:bold; margin-bottom:5px; display:block;">수기_템포 (초)</label>
+              <input type="number" class="edit-input" step="0.1" value="${round.manualTempo || ''}" disabled>
+            </div>
+            <div>
+              <label style="font-weight:bold; margin-bottom:5px; display:block;">심박수 (BPM)</label>
+              <input type="number" class="edit-input" value="${round.heartrate}" 
+                onchange="updateRoundField(${selectedRoundForEdit}, 'heartrate', this.value)">
+            </div>
+          </div>
+          <p style="margin-top:15px; color:#666; font-size:13px;">
+            💡 좌표 수정: 위의 "누적 샷 위치 시각화" 캔버스에서 샷을 클릭하고 이동할 위치를 클릭하세요.
+          </p>
+        </div>
+      `;
+    }
+    
+    // 라운드 필드 업데이트
+    function updateRoundField(roundIdx, field, value) {
+      const round = allData[roundIdx];
+      const parsedValue = parseFloat(value);
+      
+      if (field === 'heartrate') {
+        round[field] = parseInt(value) || 0;
+        round.hrZone = getHeartRateZone(round[field]);
+      } else {
+        round[field] = isNaN(parsedValue) ? null : parsedValue;
+      }
+      
+      // manualTotal이나 manualFirst 수정 시 manualTempo 자동 계산
+      if (field === "manualTotal" || field === "manualFirst") {
+        if (round.manualTotal !== null && round.manualFirst !== null) {
+          round.manualTempo = round.manualTotal - round.manualFirst;
+        } else {
+          round.manualTempo = null;
+        }
+      }
+      
+      renderEditTable();
+    }
+
+    // JSON 저장
+    function saveJSON() {
+      if (allData.length === 0) {
+        alert("저장할 데이터가 없습니다!");
+        return;
+      }
+
+      // 심박수 존 정보 수집
+      const hrZones = {
+        zone1: parseInt(document.getElementById("zone1").value) || null,
+        zone2: parseInt(document.getElementById("zone2").value) || null,
+        zone3: parseInt(document.getElementById("zone3").value) || null,
+        zone4: parseInt(document.getElementById("zone4").value) || null,
+        zone5: parseInt(document.getElementById("zone5").value) || null
+      };
+
+      const jsonData = {
+        athlete: document.getElementById("athlete").value,
+        situation: document.getElementById("situation").value,
+        event: document.getElementById("event").value,
+        heartRateZones: hrZones,
+        savedAt: new Date().toISOString(),
+        totalRounds: allData.length,
+        rounds: allData
+      };
+
+      const dataStr = JSON.stringify(jsonData, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const filename = `biathlon_${jsonData.athlete}_${new Date().toISOString().split('T')[0]}.json`;
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 초기 그리기
+    drawTargets();
+    drawAccumulated();
+    drawStats();
+  </script>
+</body>
+</html>
